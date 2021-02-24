@@ -42,7 +42,6 @@ export default {
       console.log(msg.data)
     },
     send: function () {
-      this.socket.send(params)
     },
     close: function () {
       this.socket.

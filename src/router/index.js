@@ -6,6 +6,22 @@ Vue.use(VueRouter)
 
 const routes = [
   {
+    path: '',
+    name: 'Login',
+    component: () => import(/* webpackChunkName: "about" */ '../views/Login'),
+    meta:{
+      title:'登陆'
+    }
+  },
+  {
+    path: '/',
+    name: 'Login',
+    component: () => import(/* webpackChunkName: "about" */ '../views/Login'),
+    meta:{
+      title:'登陆'
+    }
+  },
+  {
     path: '/Home',
     name: 'Home',
     component: Home,
@@ -16,42 +32,48 @@ const routes = [
           requireAuth: true
         },
         component: () => import('../views/Customer')
-      },
-      {
-        path: 'test',
+      },{
+        path: '/customerByOrder',
         meta: {
           requireAuth: true
         },
-        component:()=>import('../views/Test')
+        component:()=>import('../views/CustomerByOrder')
       },
       {
-        path: '/business',
+        path: '/business1',
         meta: {
           requireAuth: true
         },
-        component:()=>import('../views/Business')
+        component:()=>import('../views/Business1')
       },
       {
-        path: '/user',
+        path: '/business2',
         meta: {
           requireAuth: true
         },
-        component:()=>import('../views/User')
+        component:()=>import('../views/Business2')
       },
       {
-        path: '/test',
-        component:()=>import('../views/Test')
+        path: '/business3',
+        meta: {
+          requireAuth: true
+        },
+        component:()=>import('../views/Business3')
+      },
+      {
+        path: '/business6',
+        meta: {
+          requireAuth: true
+        },
+        component:()=>import('../views/OrderForEnd6')
       }
     ]
-  },
-  {
-    path: '/',
-    name: 'Login',
-    component: () => import(/* webpackChunkName: "about" */ '../views/Login')
   }
 ]
 
 const router = new VueRouter({
+  mode:'hash',
+  base:process.env.BASE_URL,
   routes
 })
 

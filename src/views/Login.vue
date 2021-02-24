@@ -32,8 +32,8 @@ export default {
   },
   methods: {
     clear(){
-      this.user.account="zhangRK";
-      this.user.password="String";
+      this.user.account="";
+      this.user.password="";
     },
     onSubmit: function () {
       const _this = this;
@@ -49,35 +49,35 @@ export default {
           type: 'warning'
         });
         return;
-      }
-
-      const loading = this.$loading({
-        lock: true,
-        text: 'Loading',
-        spinner: 'el-icon-loading',
-        background: 'rgba(0, 0, 0, 0.7)'
-      });
-      this.$axios.post('login', this.user,{
-        headers:{
-          Authentication:"1212"
-        }
-      }).then((res) => {
-        loading.close();
-        this.$message({
-          message: '登陆成功',
-              type: 'success'
+      }else{
+        const loading = this.$loading({
+          lock: true,
+          text: 'Loading',
+          spinner: 'el-icon-loading',
+          background: 'rgba(0, 0, 0, 0.7)'
         });
-        if (res.status != 200) {
-          this.$message({
-            message: "账号不存在或密码错误，如忘记密码请联系管理员",
-            type: 'warning'
-          })
-          return;
-        }
-        const token = res.headers['authentication'];
-        window.localStorage.setItem("authentication", token);
-        _this.$router.push("/Home")
-      })
+        this.$axios.post('login', this.user).then((res) => {
+          console.log("登陆返回")
+          console.log(res);
+          loading.close();
+          if (res.data.status != 200) {
+            this.$message({
+              message: "账号不存在或密码错误，如忘记密码请联系管理员",
+              type: 'warning'
+            })
+            return;
+          }
+          else{
+            this.$message({
+              message: '登陆成功',
+              type: 'success'
+            });
+            const token = res.headers['authentication'];
+            window.localStorage.setItem("authentication", token);
+            _this.$router.push("/Home")
+          }
+        })
+      }
 
     }
   }

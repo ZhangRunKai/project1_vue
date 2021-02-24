@@ -1,7 +1,6 @@
 <template>
   <div>
     <div style="margin-right: 20px;float: right">
-      <el-button type="primary" plain @click="updateDialogFormVisible = true">新增</el-button>
       <el-dialog title="编辑用户" :visible.sync="updateDialogFormVisible" >
         <el-form :model="form">
           <el-form-item label="姓名:" :label-width="formLabelWidth">
@@ -47,11 +46,39 @@
         </el-form>
         <div slot="footer" class="dialog-footer">
           <el-button @click="addDialogFormVisible = false">取 消</el-button>
-          <el-button type="primary" @click="createUser(form)">确 定</el-button>
+          <el-button type="primary" @click="createUser()">确 定</el-button>
         </div>
       </el-dialog>
     </div>
-
+    <el-dialog title="验证删除用户" :visible.sync="deleteDialog" width="30%">
+      <el-form :model="endForm">
+        <p style="color: firebrick;font-size: 20px">请按照提示验证客户，以避免错误删除</p>
+        <p style="font-size: 15px">客户姓名：{{form.name}}</p>
+        <el-form-item label="客户姓名" :label-width="formLabelWidth">
+          <el-input v-model="endForm.name" autocomplete="off"></el-input>
+        </el-form-item>
+        <p style="font-size: 15px">客户编号：{{form.accountId}}</p>
+        <el-form-item label="客户编号" :label-width="formLabelWidth">
+          <el-input v-model="endForm.accountId" autocomplete="off"></el-input>
+        </el-form-item>
+      </el-form>
+      <div slot="footer" class="dialog-footer">
+        <el-button @click="deleteDialog = false">取 消</el-button>
+        <el-button type="primary" @click="doDeleteOrder()">确 定</el-button>
+      </div>
+    </el-dialog>
+    <el-dialog
+        title="提示"
+        :visible.sync="goToCustomerByOrder"
+        width="30%"
+        :before-close="handleClose">
+      <span>该用户{{userData[temp].name}}存在订单，无法进行删除</span><br>
+      <span>是否查询用户 {{userData[temp].name}} 名下的订单</span>
+      <span slot="footer" class="dialog-footer">
+    <el-button @click="goToCustomerByOrder = false">取 消</el-button>
+    <el-button type="primary" @click="selectGoToCustomerByOrder()">查询该用户订单</el-button>
+  </span>
+    </el-dialog>
     <div class="block">
       <span class="demonstration">
         <div>
@@ -132,8 +159,24 @@ export default {
       pageSize:5,
       activeIndex: '1',
       userData: [],
+      deleteDialog:false,
       addDialogFormVisible: false,
       updateDialogFormVisible: false,
+      goToCustomerByOrder:false,
+      endForm: {
+        name: '',
+        bankCard: '',
+        theBank: '',
+        phone: '',
+        accountId:''
+      },
+      nullForm: {
+        name: '',
+        bankCard: '',
+        theBank: '',
+        phone: '',
+        accountId:''
+      },
       form: {
         name: '',
         bankCard: '',
@@ -142,107 +185,185 @@ export default {
         accountId:''
       },
       formLabelWidth: '120px',
+      temp: 0,
     };
   },
   created() {
       this.getCustomers();
   },
   methods: {
+    handleClose(){
+      this.goToCustomerByOrder=false;
+    },
+    selectRow(index,userDate){
+      this.$router.push({path:"/customerByOrder",query:{accountId:userDate[index].accountId}})
+    },
     handleSizeChange(val) {
       this.pageSize=val
       this.getCustomers();
-      console.log(`每页 ${val} 条`);
     },
     handleCurrentChange(val) {
       this.currentPage = val;
       this.getCustomers();
-      console.log(`当前页: ${val}`);
+    },
+    selectGoToCustomerByOrder(){
+      this.goToCustomerByOrder=false
+      this.selectRow(this.temp,this.userData);
     },
     setData(param){
       this.form = param;
-      console.log(this.form);
     },
     updateRow(index, userData){
       this.setData(this.userData[index]);
+      this.temp=index;
       this.updateDialogFormVisible = true;
     },
-    deleteRow(index, userData) {
-      console.log(userData[index].accountId)
-      this.$axios.post('/customer/delete',
-          userData[index].accountId,
-          {
-            headers:{
-              Authentication:window.localStorage.getItem("authentication")
-            },
-          }).then((res)=>{
-        if(res.data.status === 200 ){
+    doDeleteOrder(){
+      if(this.endForm.accountId!=this.form.accountId){
+        this.$message({
+          message: '客户编号不一致',
+          type: 'warning'
+        });
+      }
+      else if(this.endForm.name!=this.form.name){
+        this.$message({
+          message: '客户姓名不一致',
+          type: 'warning'
+        });
+      }
+      else{
+        this.$confirm('此操作将永久删除该客户, 是否继续?', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning'
+        }).then(() => {
+          this.$axios.post('/customer/delete',
+              this.endForm.accountId
+          ).then((res)=>{
+            if(res.data.status === 200 ){
+              this.$message({
+                message: '删除成功',
+                type: 'success'
+              });
+              this.getCustomers();
+              this.deleteDialog=false
+            }
+            else if(res.data.status ===402){
+              this.$message({
+                message: res.data.message,
+                type: 'warning'
+              });
+              this.goToCustomerByOrder=true;
+            }
+            else{
+              this.$message({
+                message: res.data.message,
+                type: 'warning'
+              });
+            }
+          })
+          this.form=this.endForm;
+        }).catch(() => {
           this.$message({
-            message: '删除成功',
-            type: 'success'
+            type: 'info',
+            message: '已取消删除'
           });
-        }
-      })
-      this.getCustomers();
+        });
+      }
     },
-    handleSelect(key, keyPath) {
-      console.log(key, keyPath);
+    deleteRow(index, userData) {
+      this.deleteDialog=true
+      this.form=userData[index]
+
     },
     updateUser(param){
-      this.updateDialogFormVisible = false;
-      this.$axios.post('/customer/update',
-          param,
-          {
-            headers:{
-              Authentication:window.localStorage.getItem("authentication")
-            }
-          }).then((res)=>{
-              if(res.data.status === 200 ){
-                this.$message({
-                  message: '修改成功',
-                  type: 'success'
-                });
-              }
+      if(this.checkFrom(param)){
+        this.updateDialogFormVisible = false;
+        this.$axios.post('/customer/update',
+            this.form).then((res)=>{
+          console.log(res)
+          if(res.data.status === 200 ){
+            this.$message({
+              message: '修改成功',
+              type: 'success'
+            });
+          }
           this.getCustomers();
-      })
+        })
 
-      this.form = {
-        name: '',
-        bankCard: '',
-        theBank: '',
-        phone: '',
-        accountId:''
-      };
+        this.form = {
+          name: '',
+          bankCard: '',
+          theBank: '',
+          phone: '',
+          accountId:''
+        };
+      }
     },
-    createUser(param){
-      this.addDialogFormVisible = false;
-      this.$axios.post('/customer/save',
-          this.form,
-          {
-            headers:{
-              Authentication:window.localStorage.getItem("authentication")
-            }
-          }).then((res)=>{
-        if(res.data.status === 200 ){
-          this.$message({
-            message: '修改成功',
-            type: 'success'
-          });
-          this.form = {
-            name: '',
-            bankCard: '',
-            theBank: '',
-            phone: '',
-            accountId:''
-          };
-        }
-        else{
-          this.$message({
-            message: '修改失败,请重试',
-            type: 'warning'
-          });
-        }
-        this.getCustomers();
-      })
+    checkFrom:function (){
+      if(this.form.accountId === null|| this.form.accountId === ""){
+        this.$message({
+          message: '用户编号不能为空',
+          type: 'warning'
+        });
+      }
+      else if(this.form.phone === null || this.form.phone === ""){
+        this.$message({
+          message: '用户联系方式不能为空',
+          type: 'warning'
+        });
+      }
+      else if(this.form.bankCard === null || this.form.bankCard ===""){
+        this.$message({
+          message: '用户银行卡号不能为空',
+          type: 'warning'
+        });
+      }
+      else if(this.form.name ===null || this.form.name ===""){
+        this.$message({
+          message: '用户姓名不能为空',
+          type: 'warning'
+        });
+      }
+      else if(this.form.theBank === null || this.form.theBank === ""){
+        this.$message({
+          message: '用户开户支行不能为空',
+          type: 'warning'
+        });
+      }
+      else{
+        return true;
+      }
+      return false;
+    },
+    createUser(){
+      if(this.checkFrom()){
+        this.addDialogFormVisible = false;
+        this.$axios.post('/customer/save',
+            this.form
+        ).then((res)=>{
+          if(res.data.status === 200 ){
+            this.$message({
+              message: '新增成功',
+              type: 'success'
+            });
+            this.form = {
+              name: '',
+              bankCard: '',
+              theBank: '',
+              phone: '',
+              accountId:''
+            };
+          }
+          else{
+            this.$message({
+              message: res.data.message,
+              type: 'warning'
+            });
+          }
+          this.getCustomers();
+        })
+      }
     },
     getCustomers(){
       const loading = this.$loading({
@@ -251,24 +372,15 @@ export default {
         spinner: 'el-icon-loading',
         background: 'rgba(0, 0, 0, 0.7)'
       });
-      this.$axios.post('http://localhost:8081/project1_war_exploded/customer/findAll',
+      this.$axios.post('customer/findAll',
       {
         "pageSize":this.pageSize,
         "pageNum":this.currentPage
-      },
-      {
-        headers:{
-          Authentication:window.localStorage.getItem("authentication")
-      }
       }).then((res)=>{
         loading.close();
-        console.log(res)
         if(res.data.status == 200){
             this.userData = res.data.data.data;
             this.total = res.data.data.total;
-        }
-        else{
-          console.log(res);
         }
       })
     }

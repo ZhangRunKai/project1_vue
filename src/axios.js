@@ -2,35 +2,37 @@ import axios from 'axios'
 import Element from "element-ui";
 import store from "./store";
 import router from "./router";
-axios.defaults.baseURL='http://localhost:8081/project1_war_exploded'
-axios.defaults.headers.post['Content-Type'] = 'application/json';
+// axios.defaults.baseURL='http://47.110.229.61:8889/project1_war/'
+axios.defaults.baseURL='http://localhost:8081/project1_war/'
+axios.defaults.headers.post['Content-Type'] = 'application/json;charset=UTF-8';
 axios.interceptors.request.use(config => {
-    config.headers.Authentication = localStorage.getItem("authentication");
+    config.headers.authentication = localStorage.getItem("authentication");
     // 可以统一设置请求头
     return config
 })
 axios.interceptors.response.use(response => {
         const _this = this;
         const res = response.data;
-        // 当结果的code是否为200的情况
-        if (res.status === 200) {
-            return response
-        } else {
-            // 弹窗异常信息
+        if (res.status === 500) {
             Element.Message({
                 message: response.data.message,
                 type: 'error',
                 duration: 2 * 1000
             })
-            console.log(res.status)
-            if(res.status === 401){
-                window.location.href = "/"
-            }
-            console.log("error_use")
-            console.log(res)
-            // 直接拒绝往下面返回结果信息
+            return Promise.reject(response.data.message)
+        }else if(res.status === 401){
+            Element.Message({
+                message: response.data.message,
+                type: 'error',
+                duration: 2 * 1000
+            })
+            this.timer = setInterval(() => {
+                window.location.href = "/dist"
+            }, 1000)
+
             return Promise.reject(response.data.message)
         }
+        return response
     },
     error => {
         console.log("error")
